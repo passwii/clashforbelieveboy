@@ -1,0 +1,324 @@
+mixed-port: 7890
+allow-lan: true
+bind-address:
+  '*'
+tcp-concurrent: true
+geodata-mode: true
+mode: rule
+geox-url:
+  geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
+geo-auto-update: false # 是否自动更新 geodata
+geo-update-interval: 24 # 更新间隔，单位：小时
+log-level: info
+ipv6: true
+profile:                   #缓存设置(文件位置./cache.db)
+  store-selected: false    #节点状态记忆（若不同配置有同代理名称,设置值共享）
+  store-fake-ip: true      #fake-ip缓存
+external-controller: 0.0.0.0:9090
+sniffer:                         #【Meta专属】sniffer域名嗅探器
+  enable: true                   #嗅探开关
+  sniffing:                      #嗅探协议对象：目前支持tls/http
+    - tls
+    - http
+  skip-domain:                   #列表中的sni字段，保留mapping结果，不通过嗅探还原域名
+                                 #优先级比force-domain高
+    - 'Mijia Cloud'              #米家设备，建议加
+    - 'dlg.io.mi.com'
+    - '+.apple.com'              #苹果域名，建议加
+  # - '*.baidu.com'              #支持通配符
+    
+  force-domain:                  #需要强制嗅探的域名，默认只对IP嗅探
+  # - '+'                        #去掉注释后等于全局嗅探
+    - 'google.com'
+
+
+hosts:
+  #'*daily.believeboy.com': 127.0.0.1     #例如foo.example.com>*.example.com>.example.com
+  '.clash': 192.168.50.2
+  # 'alpha.clash.dev': '::1'
+
+dns:
+  enable: true                 #DNS开关(false/true)
+  listen: 0.0.0.0:53           #DNS监听地址
+  # ipv6: false                #IP6解析开关；如果为false，将返回ip6结果为空
+  
+  default-nameserver:          #解析非IP的dns用的dns服务器,只支持纯IP
+    - 223.5.5.5
+    - 119.29.29.29
+    - 8.8.8.8
+  
+  enhanced-mode: redir-host
+
+  proxy-server-nameserver:          #【Meta专属】解析代理服务器域名的dns
+  - tls://1.0.0.1:853
+
+  nameserver:                        #默认DNS服务器，支持udp/tcp/dot/doh/doq
+    - 114.114.114.114 # default value
+    - 8.8.8.8 # default value
+    - tls://223.5.5.5:853 # DNS over TLS
+    - https://doh.pub/dns-query # DNS over HTTPS
+    - https://dns.alidns.com/dns-query#h3=true #【Meta专属】强制HTTP/3
+    - https://mozilla.cloudflare-dns.com/dns-query#DNS&h3=true #【Meta专属】指定策略组和使用 HTTP/3
+    - dhcp://en0 # dns from dhcp
+    - quic://dns.adguard.com:784 # DNS over QUIC
+    # - '8.8.8.8#en0' # 兼容指定DNS出口网卡
+
+  fallback:                          #回落DNS服务器，支持udp/tcp/dot/doh/doq
+    - https://doh.dns.sb/dns-query
+    - tcp://208.67.222.222:443
+    - quic://a.passcloud.xyz:784     #【Meta专属】Dns over quic
+    - 'tls://8.8.4.4:853#DNSg'       #【Meta专属】"#DNSg"代表该DNS服务器通过
+                                     # 名为"DNSg"的proxy Group访问
+
+  fallback-filter:                   #回落DNS服务器过滤
+    geoip: true                      #为真时，不匹配为geoip规则的使用fallback返回结果
+    geoip-code: CN                   #geoip匹配区域设定
+    geosite:                         #【Meta专属】设定geosite某分类使用fallback返回结果
+      - gfw
+    ipcidr:                          #列表中的ip使用fallback返回解析结果
+      - 240.0.0.0/4
+    domain:                          #列表中的域名使用fallback返回解析结果
+      - '+.google.com'
+      - '+.facebook.com'
+      - '+.youtube.com'
+  
+
+proxies:
+  - {name: 🇭🇰 HK-Pro, server: 162.245.221.171, port: 48793, reality-opts: {public-key: g1f1wLjim5gOVGnI5LGUV0dL4iFXPoiepOPZfSxJe14}, client-fingerprint: chrome, type: vless, uuid: 99ddd420-1a27-4e76-cf2c-02167df92db1, tls: true, tfo: false, servername: www.icloud.com, flow: xtls-rprx-vision, skip-cert-verify: true}
+  - {name: 🇺🇸 USA-Pro, server: 89.213.184.236, port: 54836, reality-opts: {public-key: cDaDzPr3PlS3NM8lreHZbdo-Mhqz8vMBzMSkHXhGIUA}, client-fingerprint: chrome, type: vless, uuid: 92a631a2-7d1d-4655-87e4-365bbd31c5d7, tls: true, tfo: false, servername: swdist.apple.com, flow: xtls-rprx-vision, skip-cert-verify: true}
+proxy-groups:
+  - name: 🚀 节点选择
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - DIRECT
+      - 🇭🇰 HK-Pro
+      - 🇺🇸 USA-Pro
+  - name: ♻️ 自动选择
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+      - 🇭🇰 HK-Pro
+      - 🇺🇸 USA-Pro
+  - name: 🎯 全球直连
+    type: select
+    proxies:
+      - DIRECT
+      - 🚀 节点选择
+      - ♻️ 自动选择
+
+rule-providers:
+  reject:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt"
+    path: ./ruleset/reject.yaml
+    interval: 86400
+
+  icloud:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt"
+    path: ./ruleset/icloud.yaml
+    interval: 86400
+
+  apple:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt"
+    path: ./ruleset/apple.yaml
+    interval: 86400
+
+  google:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt"
+    path: ./ruleset/google.yaml
+    interval: 86400
+
+  proxy:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt"
+    path: ./ruleset/proxy.yaml
+    interval: 86400
+
+  direct:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt"
+    path: ./ruleset/direct.yaml
+    interval: 86400
+
+  private:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: ./ruleset/private.yaml
+    interval: 86400
+
+  gfw:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"
+    path: ./ruleset/gfw.yaml
+    interval: 86400
+
+  tld-not-cn:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt"
+    path: ./ruleset/tld-not-cn.yaml
+    interval: 86400
+
+  telegramcidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: ./ruleset/telegramcidr.yaml
+    interval: 86400
+
+  cncidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt"
+    path: ./ruleset/cncidr.yaml
+    interval: 86400
+
+  lancidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt"
+    path: ./ruleset/lancidr.yaml
+    interval: 86400
+
+  applications:
+    type: http
+    behavior: classical
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: ./ruleset/applications.yaml
+    interval: 86400
+
+  openais:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml"
+    path: ./ruleset/openai.yaml
+    interval: 86400
+
+rules:
+  # OpenAI规则集
+  - DOMAIN,browser-intake-datadoghq.com,🇺🇸 USA-Pro
+  - DOMAIN,chat.openai.com.cdn.cloudflare.net,🇺🇸 USA-Pro
+  - DOMAIN,gemini.google.com,🇺🇸 USA-Pro
+  - DOMAIN,openai-api.arkoselabs.com,🇺🇸 USA-Pro
+  - DOMAIN,openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net,🇺🇸 USA-Pro
+  - DOMAIN,openaicomproductionae4b.blob.core.windows.net,🇺🇸 USA-Pro
+  - DOMAIN,production-openaicom-storage.azureedge.net,🇺🇸 USA-Pro
+  - DOMAIN,static.cloudflareinsights.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,ai.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,algolia.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,api.statsig.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,auth0.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,chatgpt.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,chatgpt.livekit.cloud,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,client-api.arkoselabs.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,events.statsigapi.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,featuregates.org,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,host.livekit.cloud,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,identrust.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,intercom.io,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,intercomcdn.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,launchdarkly.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,oaistatic.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,oaiusercontent.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,observeit.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,openai.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,openaiapi-site.azureedge.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,openaicom.imgix.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,segment.io,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,sentry.io,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,stripe.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,turn.livekit.cloud,🇺🇸 USA-Pro
+  - DOMAIN-KEYWORD,openai,🇺🇸 USA-Pro
+  - IP-CIDR,24.199.123.28/32,🇺🇸 USA-Pro
+  - IP-CIDR,64.23.132.171/32,🇺🇸 USA-Pro
+  - IP-ASN,20473,🇺🇸 USA-Pro
+  # OpenAI and AI-related Rules 
+  - RULE-SET,openais,🇺🇸 USA-Pro
+  - RULE-SET,applications,DIRECT
+  - RULE-SET,private,DIRECT
+  - RULE-SET,telegramcidr,🚀 节点选择
+  - RULE-SET,reject,REJECT
+  - RULE-SET,icloud,DIRECT
+  - RULE-SET,apple,DIRECT
+  - RULE-SET,google,🚀 节点选择
+  - RULE-SET,proxy,🚀 节点选择
+  - RULE-SET,direct,DIRECT
+  - RULE-SET,lancidr,DIRECT
+  - RULE-SET,cncidr,DIRECT
+
+  - DOMAIN-SUFFIX,acl4.ssr,🎯 全球直连
+  # OpenAI规则集
+  - DOMAIN,browser-intake-datadoghq.com,🇺🇸 USA-Pro
+  - DOMAIN,chat.openai.com.cdn.cloudflare.net,🇺🇸 USA-Pro
+  - DOMAIN,gemini.google.com,🇺🇸 USA-Pro
+  - DOMAIN,openai-api.arkoselabs.com,🇺🇸 USA-Pro
+  - DOMAIN,openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net,🇺🇸 USA-Pro
+  - DOMAIN,openaicomproductionae4b.blob.core.windows.net,🇺🇸 USA-Pro
+  - DOMAIN,production-openaicom-storage.azureedge.net,🇺🇸 USA-Pro
+  - DOMAIN,static.cloudflareinsights.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,ai.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,algolia.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,api.statsig.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,auth0.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,chatgpt.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,chatgpt.livekit.cloud,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,client-api.arkoselabs.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,events.statsigapi.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,featuregates.org,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,host.livekit.cloud,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,identrust.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,intercom.io,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,intercomcdn.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,launchdarkly.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,oaistatic.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,oaiusercontent.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,observeit.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,openai.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,openaiapi-site.azureedge.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,openaicom.imgix.net,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,segment.io,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,sentry.io,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,stripe.com,🇺🇸 USA-Pro
+  - DOMAIN-SUFFIX,turn.livekit.cloud,🇺🇸 USA-Pro
+  - DOMAIN-KEYWORD,openai,🇺🇸 USA-Pro
+  - IP-CIDR,24.199.123.28/32,🇺🇸 USA-Pro
+  - IP-CIDR,64.23.132.171/32,🇺🇸 USA-Pro
+  - IP-ASN,20473,🇺🇸 USA-Pro
+
+  # 苹果服务规则集
+
+
+  #【Meta专属】GEOSITE规则
+  - GEOSITE,category-ads-all,REJECT
+  - GEOSITE,icloud@cn,DIRECT
+  - GEOSITE,apple@cn,DIRECT
+  - GEOSITE,apple-cn,DIRECT
+  - GEOSITE,microsoft@cn,DIRECT
+  - GEOSITE,facebook,🚀 节点选择
+  - GEOSITE,youtube,🚀 节点选择
+  - GEOSITE,geolocation-cn,DIRECT
+  - GEOSITE,geolocation-!cn,🚀 节点选择
+
+    #GEOIP规则  
+  - GEOIP,telegram,🚀 节点选择,no-resolve
+  - GEOIP,private,DIRECT,no-resolve
+  - GEOIP,cn,DIRECT
+
+    #兜底规则
+  - MATCH,🚀 节点选择
